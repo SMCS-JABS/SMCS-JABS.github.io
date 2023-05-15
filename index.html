@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head> 
+  <!-- JAVASCRIPT SECTION -->
+  <!-- Importing Text Change Ability -->
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <!-- Main Script -->
+  <script>
+    //Constructor Functions
+    //---------------------------------
+    
+    //Makes a test with a name and a status.
+    function Test(tool, status){
+      this.tool = tool;
+      this.status = status;
+    }
+    
+    //Makes a person with a name and test results.
+    function Person(name, tests){
+      this.name = name;
+      this.tests = tests;
+      this.availableIndex = 0;
+    }
+
+    
+    //Void Functions
+    //---------------------------------
+    
+    //Responds to the search button being clicked
+    function searchPerson(){
+      let name = getSearch();
+      let doc = document.getElementById('iframe').contentDocument.body.firstChild.innerHTML;
+      let info = processData(doc);
+      let row = findPlace(info, name);
+      if(row == -1){
+        document.getElementById("results").innerHTML = "<p>Sorry! There's no database entry named <b>" + name + "</b>. Please make sure that you typed in the name correctly.";
+      }
+      else{
+        let person = makePerson(info, row);
+        sortPersonTests(person);
+        printPerson(person);
+      }
+    }
+    
+    //Puts the HTML print form of the results of "person" into the div labeled "results"
+    function printPerson(person){
+      document.getElementById("results").innerHTML = "<p class=\"test\">Name: " + person.name + "<br></p>";
+      document.getElementById("results").innerHTML += generateTestsText(person.tests);
+    }
+    
+    //Gives "person" a test called "name" with result of "score"
+    function givePersonTest(person, name, score){
+      let newTest = new Test(name, score);
+      person.tests[person.availableIndex] = newTest;
+      person.availableIndex++;
+    }
+
+    
+    //Return Functions
+    //---------------------------------
+    
+    //Returns the HTML print form of a list of tests
+    function generateTestsText(testList){
+      let text = "";
+      for(let i = 0; i<testList.length; i++){
+        text += makeTestText(testList[i]);
+      }
+      return text;
+    }
+    
+    //Returns the HTML print form of "test" and its results
+    function makeTestText(test){
+      let source = "abc";
+      if(test.status == 0){
+        source = "xmark";
+      }
+      else if(test.status == 1){
+        source = "orangecircle";
+      }
+      else{
+        source = "checkmark";
+      }
+      return "<p class=\"test\"><img src=\"" + source + ".png\" style=\"float:left;width:30px;height:30px\">&nbsp&nbsp" + test.tool + "</p>";
+    }
+    
+    //Sorts elements in the "tests" list of "person" by completion
+    function sortPersonTests(person){
+      person.tests.sort(compareStatus);
+    }
+    
+    //Compares the completion status of two tests
+    function compareStatus(test1, test2){
+      return test2.status - test1.status;
+    }
+    
+    
+    //Read Functions
+    //---------------------------------
+    
+    //Returns the text in the "Search Name" box
+    function getSearch(){
+      return document.getElementById("searchName").value;
+    }
+    
+  </script>
+  <!-- Hide/Show Script -->
+  <script>
+    //Variable for the text that's being hidden
+    let text = "";
+
+    //Hides the screen by removing the text from the "help" div and documents the text being removed
+    function hideScreen(){
+      text = document.getElementById("help").innerHTML;
+      document.getElementById("help").innerHTML = "<button type=\"button\" onclick=\"showScreen();\">Show Help</button>";
+    }
+
+    //Re-fills the "help" div with the stored text
+    function showScreen(){
+      document.getElementById("help").innerHTML = text;
+    }
+  </script>
+  <!-- Read Script -->
+  <script>
+//Converts the data from the file into a readable format
+function processData(csv) {
+  var allTextLines = csv.split(/\r\n|\n/);
+  var lines = [];
+  while (allTextLines.length) {
+    lines.push(allTextLines.shift().split(','));
+  }
+  return lines;
+}
+
+//Returns the row of "name" in "file", -1 if not present
+function findPlace(file, name){
+  for(var i = 1; i < file.length; i++){
+    if(file[i][0] === name){
+      return i;
+    }
+  }
+  return -1;
+}
+    
+//Returns the person defined in "row" of "source"
+function makePerson(source, row) {
+  const tests = [];
+  let person = new Person(source[row][0], tests);
+  for (var test = 1; test < source[row].length; test++) {
+    name = source[0][test];
+    if(name === ""){
+      name = "Undefined";
+    }
+    givePersonTest(person, name, source[row][test]);
+  }
+  return person;
+}
+
+//Fills datalist "names" with names of people with data
+function makeNameList(){
+  let doc = document.getElementById('iframe').contentDocument.body.firstChild.innerHTML;
+  let source = processData(doc);
+  for(var name = 1; name < source.length; name++){
+    document.getElementById("names").innerHTML += "<option value =\"" + source[name][0] + "\">";
+  }
+  console.log(document.getElementById("names").innerHTML);
+}
+  </script>
+  <!-- Styling of Text -->
+  <style>
+    .test{
+      color: black;
+      font-size: 150%;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <datalist id="names"></datalist>
+  <!-- Centered Area -->
+  <center>
+    <!-- Search Bar -->
+    <input type="text" id="searchName" list="names" autocomplete="off" placeholder="Search Name">
+    <button type="button" onclick="searchPerson();">Search</button>
+    <span id="help">
+      <hr>
+      <p>
+        <b>USER GUIDE</b><br>
+        Type a person's name into the search box to see their results, which will show an icon for the results and the test name.<br>
+        <br>
+        <b>Test Results Key</b><br>
+          Checkmark: Passed<br>
+          Orange Circle: Retake Needed<br>
+          X Mark: Not Attempted
+      </p>
+      <button type="button" onclick="hideScreen();">Hide Help</button>
+    </span>
+  </center>
+  <hr>
+  <!-- Search Results -->
+  <div id="results"></div>
+  <!-- Other Thing -->
+  <iframe id='iframe' src = 'sheet.csv' onload="makeNameList();" style="display: none"></iframe>
+</body>
+</html>
